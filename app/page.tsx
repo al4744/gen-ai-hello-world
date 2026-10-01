@@ -1,3 +1,6 @@
+import GoogleSignIn from "@/components/google-sign-in";
+import AuthControls from "@/components/auth-controls";
+import { createClient } from "@/lib/supabase/server";
 import { supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +13,12 @@ type Post = {
 };
 
 export default async function Home() {
+  const authSupabase = await createClient();
+
+  const {
+    data: { user },
+  } = await authSupabase.auth.getUser();
+
   const { data: posts, error } = await supabase
     .from("posts")
     .select("id, title, body, created_at")
@@ -29,6 +38,14 @@ export default async function Home() {
         <h1 className="mb-8 text-center text-4xl font-bold">
           Posts from Supabase
         </h1>
+
+        {user ? (
+          <AuthControls email={user.email ?? "Signed-in user"} />
+        ) : (
+          <div className="mb-8 flex justify-center">
+            <GoogleSignIn />
+          </div>
+        )}
 
         <div className="space-y-4">
           {posts?.map((post: Post) => (
