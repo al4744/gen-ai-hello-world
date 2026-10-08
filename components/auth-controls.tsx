@@ -8,7 +8,9 @@ type AuthControlsProps = {
   email: string;
 };
 
-export default function AuthControls({ email }: AuthControlsProps) {
+export default function AuthControls({
+  email,
+}: AuthControlsProps) {
   const router = useRouter();
 
   async function handleSignOut() {
@@ -25,7 +27,21 @@ export default function AuthControls({ email }: AuthControlsProps) {
         Signed in as {email}
       </p>
 
-      <div className="flex justify-center gap-3">
+      <div className="flex flex-wrap justify-center gap-3">
+        <Link
+          href="/generate"
+          className="rounded-lg border px-4 py-2 font-medium"
+        >
+          Generate
+        </Link>
+
+        <Link
+          href="/battle"
+          className="rounded-lg border px-4 py-2 font-medium"
+        >
+          Battle
+        </Link>
+
         <Link
           href="/profile"
           className="rounded-lg border px-4 py-2 font-medium"
