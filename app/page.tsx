@@ -1,60 +1,131 @@
 import GoogleSignIn from "@/components/google-sign-in";
 import AuthControls from "@/components/auth-controls";
 import { createClient } from "@/lib/supabase/server";
-import { supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
-type Post = {
-  id: number;
-  title: string;
-  body: string;
-  created_at: string;
-};
-
 export default async function Home() {
-  const authSupabase = await createClient();
+  const supabase = await createClient();
 
   const {
     data: { user },
-  } = await authSupabase.auth.getUser();
+  } = await supabase.auth.getUser();
 
-  const { data: posts, error } = await supabase
-    .from("posts")
-    .select("id, title, body, created_at")
-    .order("id", { ascending: true });
+  let firstName: string | null = null;
+  let lastName: string | null = null;
+  let avatarUrl: string | null = null;
 
-  if (error) {
-    return (
-      <main className="flex min-h-screen items-center justify-center">
-        <p>Failed to load posts.</p>
-      </main>
-    );
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("first_name, last_name, avatar_url")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    firstName = profile?.first_name ?? null;
+    lastName = profile?.last_name ?? null;
+
+    if (profile?.avatar_url) {
+      if (
+        profile.avatar_url.startsWith("http://") ||
+        profile.avatar_url.startsWith("https://")
+      ) {
+        avatarUrl = profile.avatar_url;
+      } else {
+        const {
+          data: { publicUrl },
+        } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(profile.avatar_url);
+
+        avatarUrl = publicUrl;
+      }
+    }
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-8">
-      <div className="w-full max-w-2xl">
-        <h1 className="mb-8 text-center text-4xl font-bold">
-          Posts from Supabase
-        </h1>
+    <main className="relative min-h-screen px-6 py-12">
+      <div className="mx-auto w-full max-w-5xl">
+        <section className="py-12 text-center">
+          <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-gray-500">
+            Human Preference for Generative AI
+          </p>
 
-        {user ? (
-          <AuthControls email={user.email ?? "Signed-in user"} />
-        ) : (
-          <div className="mb-8 flex justify-center">
-            <GoogleSignIn />
+          <h1 className="text-5xl font-bold tracking-tight md:text-6xl">
+            Caption Arena
+          </h1>
+
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-500">
+            Generate competing AI captions, vote on the ones
+            you prefer, and see what the community thinks.
+          </p>
+
+          <div className="mt-10">
+            {user ? (
+              <AuthControls
+                email={user.email ?? "Signed-in user"}
+                firstName={firstName}
+                lastName={lastName}
+                avatarUrl={avatarUrl}
+              />
+            ) : (
+              <div>
+                <GoogleSignIn />
+
+                <p className="mt-4 text-sm text-gray-500">
+                  Sign in to generate caption battles and vote.
+                </p>
+              </div>
+            )}
           </div>
-        )}
+        </section>
 
-        <div className="space-y-4">
-          {posts?.map((post: Post) => (
-            <article key={post.id} className="rounded-lg border p-5">
-              <h2 className="text-xl font-bold">{post.title}</h2>
-              <p className="mt-2">{post.body}</p>
-            </article>
-          ))}
-        </div>
+        <section className="grid gap-4 md:grid-cols-3">
+          <article className="rounded-2xl border p-6">
+            <p className="text-sm font-medium text-gray-500">
+              01
+            </p>
+
+            <h2 className="mt-3 text-xl font-bold">
+              Generate
+            </h2>
+
+            <p className="mt-3 leading-7 text-gray-500">
+              Upload an image and optional context. AI creates
+              two competing captions for the same image.
+            </p>
+          </article>
+
+          <article className="rounded-2xl border p-6">
+            <p className="text-sm font-medium text-gray-500">
+              02
+            </p>
+
+            <h2 className="mt-3 text-xl font-bold">
+              Vote
+            </h2>
+
+            <p className="mt-3 leading-7 text-gray-500">
+              Compare Caption A and Caption B, then choose A,
+              B, Both, or Neither.
+            </p>
+          </article>
+
+          <article className="rounded-2xl border p-6">
+            <p className="text-sm font-medium text-gray-500">
+              03
+            </p>
+
+            <h2 className="mt-3 text-xl font-bold">
+              Compare
+            </h2>
+
+            <p className="mt-3 leading-7 text-gray-500">
+              Votes become human-preference data showing which
+              AI outputs the community actually prefers.
+            </p>
+          </article>
+        </section>
       </div>
     </main>
   );

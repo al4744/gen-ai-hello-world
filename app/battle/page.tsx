@@ -2,6 +2,7 @@ import Link from "next/link";
 import GoogleSignIn from "@/components/google-sign-in";
 import VoteButtons from "@/components/vote-buttons";
 import { createClient } from "@/lib/supabase/server";
+import HomeButton from "@/components/home-button";
 
 type Generation = {
   id: number;
@@ -20,16 +21,15 @@ export default async function BattlePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: generationSet } = await supabase
+  const { data: generationSets } = await supabase
     .from("generation_sets")
     .select("id, image_path, user_prompt, created_at")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
 
-  if (!generationSet) {
+  if (!generationSets || generationSets.length === 0) {
     return (
       <main className="flex min-h-screen items-center justify-center p-8">
+        <HomeButton />
         <div className="text-center">
           <h1 className="text-4xl font-bold">
             Caption Battle
@@ -52,6 +52,65 @@ export default async function BattlePage() {
     );
   }
 
+  let generationSet = generationSets[0];
+  let existingChoice: VoteChoice | null = null;
+
+  if (user) {
+    const { data: userVotes } = await supabase
+      .from("votes")
+      .select("generation_set_id, choice")
+      .eq("user_id", user.id);
+
+    const votedSetIds = new Set(
+      (userVotes ?? []).map((vote) => vote.generation_set_id)
+    );
+
+    const unvotedSet = generationSets.find(
+      (set) => !votedSetIds.has(set.id)
+    );
+
+    if (!unvotedSet) {
+      return (
+        <main className="flex min-h-screen items-center justify-center p-8">
+          <HomeButton />
+          <div className="w-full max-w-md text-center">
+            <h1 className="text-4xl font-bold">
+              You&apos;re caught up
+            </h1>
+
+            <p className="mt-4 text-gray-500">
+              You&apos;ve voted on every caption battle currently available.
+            </p>
+
+            <div className="mt-8 flex justify-center gap-3">
+              <Link
+                href="/generate"
+                className="rounded-lg border px-4 py-2 font-medium"
+              >
+                Create another
+              </Link>
+            </div>
+          </div>
+        </main>
+      );
+    }
+
+    generationSet = unvotedSet;
+
+    const existingVote = (userVotes ?? []).find(
+      (vote) => vote.generation_set_id === generationSet.id
+    );
+
+    if (
+      existingVote?.choice === "a" ||
+      existingVote?.choice === "b" ||
+      existingVote?.choice === "both" ||
+      existingVote?.choice === "neither"
+    ) {
+      existingChoice = existingVote.choice;
+    }
+  }
+
   const { data: generations } = await supabase
     .from("generations")
     .select("id, candidate_index, content")
@@ -66,32 +125,13 @@ export default async function BattlePage() {
     .from("generation-media")
     .getPublicUrl(generationSet.image_path);
 
-  let existingChoice: VoteChoice | null = null;
-
-  if (user) {
-    const { data: vote } = await supabase
-      .from("votes")
-      .select("choice")
-      .eq("user_id", user.id)
-      .eq("generation_set_id", generationSet.id)
-      .maybeSingle();
-
-    if (
-      vote?.choice === "a" ||
-      vote?.choice === "b" ||
-      vote?.choice === "both" ||
-      vote?.choice === "neither"
-    ) {
-      existingChoice = vote.choice;
-    }
-  }
-
   return (
     <main className="min-h-screen p-8">
+      <HomeButton />
       <div className="mx-auto w-full max-w-4xl">
         <div className="text-center">
           <h1 className="text-4xl font-bold">
-            Caption Battle
+            Caption Arena
           </h1>
 
           <p className="mt-3 text-gray-500">
@@ -159,13 +199,6 @@ export default async function BattlePage() {
         )}
 
         <div className="mt-10 flex justify-center gap-3">
-          <Link
-            href="/"
-            className="rounded-lg border px-4 py-2 font-medium"
-          >
-            Home
-          </Link>
-
           {user && (
             <Link
               href="/generate"

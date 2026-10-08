@@ -1,6 +1,13 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useState } from "react";
+import {
+  ChangeEvent,
+  ClipboardEvent,
+  DragEvent,
+  FormEvent,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
@@ -29,11 +36,12 @@ export default function GenerationForm({
   const [userPrompt, setUserPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState("");
-  const [result, setResult] = useState<GenerationResult | null>(null);
+  const [result, setResult] =
+    useState<GenerationResult | null>(null);
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const selectedFile = event.target.files?.[0];
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  function acceptFile(selectedFile: File | null) {
     setResult(null);
     setMessage("");
 
@@ -43,12 +51,18 @@ export default function GenerationForm({
       return;
     }
 
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
 
     if (!allowedTypes.includes(selectedFile.type)) {
       setFile(null);
       setPreviewUrl("");
-      setMessage("Please choose a JPEG, PNG, or WebP image.");
+      setMessage(
+        "Please choose a JPEG, PNG, or WebP image."
+      );
       return;
     }
 
@@ -63,7 +77,48 @@ export default function GenerationForm({
     setPreviewUrl(URL.createObjectURL(selectedFile));
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleFileChange(
+    event: ChangeEvent<HTMLInputElement>
+  ) {
+    acceptFile(event.target.files?.[0] ?? null);
+  }
+
+  function handleDrop(
+    event: DragEvent<HTMLDivElement>
+  ) {
+    event.preventDefault();
+
+    const droppedFile =
+      event.dataTransfer.files?.[0] ?? null;
+
+    acceptFile(droppedFile);
+  }
+
+  function handlePaste(
+    event: ClipboardEvent<HTMLDivElement>
+  ) {
+    const items = Array.from(event.clipboardData.items);
+
+    const imageItem = items.find((item) =>
+      item.type.startsWith("image/")
+    );
+
+    if (!imageItem) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const pastedFile = imageItem.getAsFile();
+
+    if (pastedFile) {
+      acceptFile(pastedFile);
+    }
+  }
+
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     if (!file) {
@@ -77,8 +132,20 @@ export default function GenerationForm({
 
     const supabase = createClient();
 
-    const extension =
-      file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+    let extension =
+      file.name.split(".").pop()?.toLowerCase();
+
+    if (
+      !extension ||
+      !["jpg", "jpeg", "png", "webp"].includes(extension)
+    ) {
+      extension =
+        file.type === "image/png"
+          ? "png"
+          : file.type === "image/webp"
+            ? "webp"
+            : "jpg";
+    }
 
     const imagePath =
       `${userId}/${crypto.randomUUID()}.${extension}`;
@@ -111,7 +178,9 @@ export default function GenerationForm({
     const data = await response.json();
 
     if (!response.ok) {
-      setMessage(data.error ?? "Failed to generate captions.");
+      setMessage(
+        data.error ?? "Failed to generate captions."
+      );
       setGenerating(false);
       return;
     }
@@ -121,21 +190,76 @@ export default function GenerationForm({
     setGenerating(false);
   }
 
+  function handleCreateAnother() {
+    setFile(null);
+    setPreviewUrl("");
+    setUserPrompt("");
+    setMessage("");
+    setResult(null);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
   return (
     <div className="space-y-8">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label className="mb-2 block font-medium">
+          <p className="mb-2 font-medium">
             Image
-          </label>
+          </p>
 
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={handleFileChange}
-            disabled={generating}
-            className="block w-full"
-          />
+          <div
+            onDragOver={(event) => {
+              event.preventDefault();
+            }}
+            onDrop={handleDrop}
+            onPaste={handlePaste}
+            tabIndex={0}
+            className="rounded-xl border-2 border-dashed p-8 text-center"
+          >
+            <p className="font-medium">
+              Drop an image here
+            </p>
+
+            <p className="mt-2 text-sm text-gray-500">
+              or paste an image with ⌘V
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                fileInputRef.current?.click()
+              }
+              disabled={generating}
+              className="mt-4 rounded-lg border px-4 py-2 font-medium disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {file
+                ? "Choose a different image"
+                : "Choose image"}
+            </button>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleFileChange}
+              disabled={generating}
+              className="hidden"
+            />
+
+            {file && (
+              <p className="mt-3 text-sm text-gray-500">
+                {file.name || "Pasted image"}
+              </p>
+            )}
+          </div>
         </div>
 
         {previewUrl && (
@@ -201,32 +325,50 @@ export default function GenerationForm({
           />
 
           <div className="grid gap-4 md:grid-cols-2">
-            {result.generations.map((generation, index) => (
-              <article
-                key={generation.id}
-                className="rounded-lg border p-5"
-              >
-                <p className="mb-2 text-sm font-medium text-gray-500">
-                  Caption {index === 0 ? "A" : "B"}
-                </p>
+            {result.generations.map(
+              (generation, index) => (
+                <article
+                  key={generation.id}
+                  className="rounded-lg border p-5"
+                >
+                  <p className="mb-2 text-sm font-medium text-gray-500">
+                    Caption {index === 0 ? "A" : "B"}
+                  </p>
 
-                <p className="text-lg">
-                  {generation.content}
-                </p>
-              </article>
-            ))}
+                  <p className="text-lg">
+                    {generation.content}
+                  </p>
+                </article>
+              )
+            )}
           </div>
 
           <p className="text-center text-sm text-gray-500">
-            Saved successfully. This matchup is ready for community voting.
+            Saved successfully. This matchup is ready
+            for community voting.
           </p>
 
-          <div className="flex justify-center">
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link
+              href="/battle"
+              className="rounded-lg border px-5 py-2 font-medium"
+            >
+              Open in Arena
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleCreateAnother}
+              className="rounded-lg border px-5 py-2 font-medium"
+            >
+              Create another
+            </button>
+
             <Link
               href="/"
-              className="rounded-lg border px-4 py-2 font-medium"
+              className="rounded-lg border px-5 py-2 font-medium"
             >
-              Back home
+              Home
             </Link>
           </div>
         </section>
