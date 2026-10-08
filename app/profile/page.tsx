@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ProfileForm from "@/components/profile-form";
-import HomeButton from "@/components/home-button";
+import AppHeader from "@/components/app-header";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -24,7 +24,7 @@ export default async function ProfilePage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center p-8">
-      <HomeButton />
+      <AppHeader />
       <div className="w-full max-w-md">
         <h1 className="text-center text-4xl font-bold">Profile</h1>
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import GoogleSignIn from "@/components/google-sign-in";
 import VoteButtons from "@/components/vote-buttons";
 import { createClient } from "@/lib/supabase/server";
-import HomeButton from "@/components/home-button";
+import AppHeader from "@/components/app-header";
 
 type Generation = {
   id: number;
@@ -29,7 +29,7 @@ export default async function BattlePage() {
   if (!generationSets || generationSets.length === 0) {
     return (
       <main className="flex min-h-screen items-center justify-center p-8">
-        <HomeButton />
+        <AppHeader />
         <div className="text-center">
           <h1 className="text-4xl font-bold">
             Caption Battle
@@ -72,7 +72,7 @@ export default async function BattlePage() {
     if (!unvotedSet) {
       return (
         <main className="flex min-h-screen items-center justify-center p-8">
-          <HomeButton />
+          <AppHeader />
           <div className="w-full max-w-md text-center">
             <h1 className="text-4xl font-bold">
               You&apos;re caught up
@@ -127,7 +127,7 @@ export default async function BattlePage() {
 
   return (
     <main className="min-h-screen p-8">
-      <HomeButton />
+      <AppHeader />
       <div className="mx-auto w-full max-w-4xl">
         <div className="text-center">
           <h1 className="text-4xl font-bold">

@@ -1,5 +1,6 @@
 import GoogleSignIn from "@/components/google-sign-in";
 import AuthControls from "@/components/auth-controls";
+import AppHeader from "@/components/app-header";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -11,40 +12,9 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let firstName: string | null = null;
-  let lastName: string | null = null;
-  let avatarUrl: string | null = null;
-
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("first_name, last_name, avatar_url")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    firstName = profile?.first_name ?? null;
-    lastName = profile?.last_name ?? null;
-
-    if (profile?.avatar_url) {
-      if (
-        profile.avatar_url.startsWith("http://") ||
-        profile.avatar_url.startsWith("https://")
-      ) {
-        avatarUrl = profile.avatar_url;
-      } else {
-        const {
-          data: { publicUrl },
-        } = supabase.storage
-          .from("avatars")
-          .getPublicUrl(profile.avatar_url);
-
-        avatarUrl = publicUrl;
-      }
-    }
-  }
-
   return (
     <main className="relative min-h-screen px-6 py-12">
+      <AppHeader showHome={false} />
       <div className="mx-auto w-full max-w-5xl">
         <section className="py-12 text-center">
           <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-gray-500">
@@ -62,12 +32,7 @@ export default async function Home() {
 
           <div className="mt-10">
             {user ? (
-              <AuthControls
-                email={user.email ?? "Signed-in user"}
-                firstName={firstName}
-                lastName={lastName}
-                avatarUrl={avatarUrl}
-              />
+              <AuthControls />
             ) : (
               <div>
                 <GoogleSignIn />

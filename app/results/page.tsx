@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import HomeButton from "@/components/home-button";
+import AppHeader from "@/components/app-header";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +43,7 @@ export default async function ResultsPage() {
 
     return (
       <main className="flex min-h-screen items-center justify-center p-8">
-        <HomeButton />
+        <AppHeader />
         <p>Failed to load battles.</p>
       </main>
     );
@@ -62,7 +62,7 @@ export default async function ResultsPage() {
 
     return (
       <main className="flex min-h-screen items-center justify-center p-8">
-        <HomeButton />
+        <AppHeader />
         <p>Failed to load captions.</p>
       </main>
     );
@@ -76,7 +76,7 @@ export default async function ResultsPage() {
 
     return (
       <main className="flex min-h-screen items-center justify-center p-8">
-        <HomeButton />
+        <AppHeader />
         <p>Failed to load results.</p>
       </main>
     );
@@ -112,7 +112,7 @@ export default async function ResultsPage() {
   if (sets.length === 0) {
     return (
       <main className="flex min-h-screen items-center justify-center p-8">
-        <HomeButton />
+        <AppHeader />
         <div className="text-center">
           <h1 className="text-4xl font-bold">
             Results
@@ -135,7 +135,7 @@ export default async function ResultsPage() {
 
   return (
     <main className="min-h-screen px-6 py-10">
-      <HomeButton />
+      <AppHeader />
       <div className="mx-auto w-full max-w-5xl">
         <header className="text-center">
           <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-gray-500">

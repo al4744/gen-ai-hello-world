@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import GenerationForm from "@/components/generation-form";
-import HomeButton from "@/components/home-button";
+import AppHeader from "@/components/app-header";
 
 export default async function GeneratePage() {
   const supabase = await createClient();
@@ -16,7 +16,7 @@ export default async function GeneratePage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center p-8">
-      <HomeButton />
+      <AppHeader />
       <div className="w-full max-w-2xl">
         <h1 className="text-center text-4xl font-bold">
           Create a Caption Battle
