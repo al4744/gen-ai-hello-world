@@ -24,3 +24,8 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+body > main:has(> .app-header) {
+  margin-top: 4.5rem;
+  min-height: calc(100vh - 4.5rem);
+}

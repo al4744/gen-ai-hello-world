@@ -1,5 +1,4 @@
 import GoogleSignIn from "@/components/google-sign-in";
-import AuthControls from "@/components/auth-controls";
 import AppHeader from "@/components/app-header";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,7 +13,7 @@ export default async function Home() {
 
   return (
     <main className="relative min-h-screen px-6 py-12">
-      <AppHeader showHome={false} />
+      <AppHeader />
       <div className="mx-auto w-full max-w-5xl">
         <section className="py-12 text-center">
           <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-gray-500">
@@ -31,9 +30,7 @@ export default async function Home() {
           </p>
 
           <div className="mt-10">
-            {user ? (
-              <AuthControls />
-            ) : (
+            {!user && (
               <div>
                 <GoogleSignIn />
 

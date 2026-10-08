@@ -43,7 +43,7 @@ export default function AccountMenu({
 
   return (
     <div
-      className="fixed right-8 top-6 z-50"
+      className="relative shrink-0"
       onMouseEnter={() => setMenuOpen(true)}
       onMouseLeave={() => setMenuOpen(false)}
     >

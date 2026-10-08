@@ -33,7 +33,6 @@ export default function GenerationForm({
 }: GenerationFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
-  const [userPrompt, setUserPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState("");
   const [result, setResult] =
@@ -171,7 +170,7 @@ export default function GenerationForm({
       },
       body: JSON.stringify({
         imagePath,
-        userPrompt: userPrompt.trim(),
+        userPrompt: "",
       }),
     });
 
@@ -193,7 +192,6 @@ export default function GenerationForm({
   function handleCreateAnother() {
     setFile(null);
     setPreviewUrl("");
-    setUserPrompt("");
     setMessage("");
     setResult(null);
 
@@ -269,31 +267,6 @@ export default function GenerationForm({
             className="max-h-96 w-full rounded-lg border object-contain"
           />
         )}
-
-        <div>
-          <label
-            htmlFor="context"
-            className="mb-2 block font-medium"
-          >
-            Context
-          </label>
-
-          <textarea
-            id="context"
-            value={userPrompt}
-            onChange={(event) =>
-              setUserPrompt(event.target.value)
-            }
-            maxLength={500}
-            rows={4}
-            placeholder="Example: Butler Library at 2 AM during midterms"
-            className="w-full rounded-lg border px-4 py-3"
-          />
-
-          <p className="mt-1 text-right text-sm text-gray-500">
-            {userPrompt.length}/500
-          </p>
-        </div>
 
         <button
           type="submit"

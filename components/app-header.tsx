@@ -1,14 +1,9 @@
+import Link from "next/link";
 import AccountMenu from "@/components/account-menu";
-import HomeButton from "@/components/home-button";
+import HeaderLinks from "@/components/header-links";
 import { createClient } from "@/lib/supabase/server";
 
-type AppHeaderProps = {
-  showHome?: boolean;
-};
-
-export default async function AppHeader({
-  showHome = true,
-}: AppHeaderProps) {
+export default async function AppHeader() {
   const supabase = await createClient();
 
   const {
@@ -48,16 +43,26 @@ export default async function AppHeader({
   }
 
   return (
-    <>
-      {showHome && <HomeButton />}
-      {user && (
-        <AccountMenu
-          email={user.email ?? "Signed-in user"}
-          firstName={firstName}
-          lastName={lastName}
-          avatarUrl={avatarUrl}
-        />
-      )}
-    </>
+    <header className="app-header fixed inset-x-0 top-0 z-50 h-18 border-b border-white/10 bg-black text-gray-100">
+      <div className="flex h-full items-center gap-2 px-3 sm:gap-8 sm:px-6 lg:px-8">
+        <Link
+          href="/"
+          className="flex min-h-11 w-14 shrink-0 items-center rounded-md text-xs font-semibold leading-4 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:w-auto sm:text-base sm:leading-normal"
+        >
+          Caption Arena
+        </Link>
+
+        <HeaderLinks />
+
+        {user && (
+          <AccountMenu
+            email={user.email ?? "Signed-in user"}
+            firstName={firstName}
+            lastName={lastName}
+            avatarUrl={avatarUrl}
+          />
+        )}
+      </div>
+    </header>
   );
 }
