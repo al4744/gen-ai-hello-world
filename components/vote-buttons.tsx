@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type Generation = {
@@ -10,6 +11,14 @@ type Generation = {
 };
 
 type VoteChoice = "a" | "b" | "both" | "neither";
+
+type BattleResults = {
+  totalVotes: number;
+  aVotes: number;
+  bVotes: number;
+  bothVotes: number;
+  neitherVotes: number;
+};
 
 type VoteButtonsProps = {
   userId: string;
@@ -24,11 +33,16 @@ export default function VoteButtons({
   generations,
   initialChoice,
 }: VoteButtonsProps) {
+  const router = useRouter();
+
   const [selectedChoice, setSelectedChoice] =
     useState<VoteChoice | null>(initialChoice);
 
   const [submitting, setSubmitting] = useState(false);
+  const [loadingResults, setLoadingResults] = useState(false);
   const [message, setMessage] = useState("");
+  const [results, setResults] =
+    useState<BattleResults | null>(null);
 
   const captionA = generations.find(
     (generation) => generation.candidate_index === 1
@@ -37,6 +51,47 @@ export default function VoteButtons({
   const captionB = generations.find(
     (generation) => generation.candidate_index === 2
   );
+
+  async function loadResults() {
+    setLoadingResults(true);
+
+    const supabase = createClient();
+
+    const { data, error } = await supabase.rpc(
+      "get_battle_results",
+      {
+        p_generation_set_id: generationSetId,
+      }
+    );
+
+    if (error) {
+      console.error("Results error:", error);
+      setLoadingResults(false);
+      return;
+    }
+
+    const row = data?.[0];
+
+    if (row) {
+      setResults({
+        totalVotes: Number(row.total_votes ?? 0),
+        aVotes: Number(row.a_votes ?? 0),
+        bVotes: Number(row.b_votes ?? 0),
+        bothVotes: Number(row.both_votes ?? 0),
+        neitherVotes: Number(row.neither_votes ?? 0),
+      });
+    }
+
+    setLoadingResults(false);
+  }
+
+  useEffect(() => {
+    if (initialChoice !== null) {
+      loadResults();
+    }
+    // We only want this check when the battle first loads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleVote(choice: VoteChoice) {
     if (selectedChoice !== null || submitting) {
@@ -66,12 +121,14 @@ export default function VoteButtons({
 
     const supabase = createClient();
 
-    const { error } = await supabase.from("votes").insert({
-      user_id: userId,
-      generation_set_id: generationSetId,
-      chosen_generation_id: chosenGenerationId,
-      choice,
-    });
+    const { error } = await supabase
+      .from("votes")
+      .insert({
+        user_id: userId,
+        generation_set_id: generationSetId,
+        chosen_generation_id: chosenGenerationId,
+        choice,
+      });
 
     if (error) {
       console.error(error);
@@ -89,6 +146,8 @@ export default function VoteButtons({
     setSelectedChoice(choice);
     setMessage("Vote saved.");
     setSubmitting(false);
+
+    await loadResults();
   }
 
   function buttonText(
@@ -100,6 +159,22 @@ export default function VoteButtons({
     }
 
     return defaultText;
+  }
+
+  function percentage(votes: number) {
+    if (!results || results.totalVotes === 0) {
+      return 0;
+    }
+
+    return Math.round(
+      (votes / results.totalVotes) * 100
+    );
+  }
+
+  function handleNextBattle() {
+    setResults(null);
+    setMessage("");
+    router.refresh();
   }
 
   return (
@@ -148,10 +223,89 @@ export default function VoteButtons({
         </p>
       )}
 
-      {selectedChoice !== null && !message && (
-        <p className="mt-4 text-center text-sm text-gray-500">
-          You already voted on this battle.
+      {loadingResults && (
+        <p className="mt-6 text-center text-sm text-gray-500">
+          Loading community results...
         </p>
+      )}
+
+      {results && (
+        <section className="mt-8">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold">
+              Community Results
+            </h2>
+
+            <p className="mt-2 text-sm text-gray-500">
+              {results.totalVotes}{" "}
+              {results.totalVotes === 1 ? "vote" : "votes"}
+            </p>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border p-4">
+              <div className="flex justify-between gap-4">
+                <span>Caption A</span>
+                <span className="font-bold">
+                  {percentage(results.aVotes)}%
+                </span>
+              </div>
+
+              <p className="mt-1 text-sm text-gray-500">
+                {results.aVotes} votes
+              </p>
+            </div>
+
+            <div className="rounded-xl border p-4">
+              <div className="flex justify-between gap-4">
+                <span>Caption B</span>
+                <span className="font-bold">
+                  {percentage(results.bVotes)}%
+                </span>
+              </div>
+
+              <p className="mt-1 text-sm text-gray-500">
+                {results.bVotes} votes
+              </p>
+            </div>
+
+            <div className="rounded-xl border p-4">
+              <div className="flex justify-between gap-4">
+                <span>Both</span>
+                <span className="font-bold">
+                  {percentage(results.bothVotes)}%
+                </span>
+              </div>
+
+              <p className="mt-1 text-sm text-gray-500">
+                {results.bothVotes} votes
+              </p>
+            </div>
+
+            <div className="rounded-xl border p-4">
+              <div className="flex justify-between gap-4">
+                <span>Neither</span>
+                <span className="font-bold">
+                  {percentage(results.neitherVotes)}%
+                </span>
+              </div>
+
+              <p className="mt-1 text-sm text-gray-500">
+                {results.neitherVotes} votes
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-center">
+            <button
+              type="button"
+              onClick={handleNextBattle}
+              className="rounded-xl border px-6 py-3 font-medium"
+            >
+              Next Battle
+            </button>
+          </div>
+        </section>
       )}
     </div>
   );
